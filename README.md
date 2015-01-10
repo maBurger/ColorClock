@@ -1,6 +1,6 @@
 # ColorClock
 Colorful DIY clock with 60 Neo-LEDs.
-This is a project for th VHS Esslingen - Technikschule.
+This is a project for the VHS Esslingen - Technikschule.
 In the project we are building up a real clock with one NEO RGB LED for each Minute or Second.
 
 ## Hardware
@@ -13,7 +13,7 @@ Following requirements are needed
 
 ***Libraries***
 * [TimerOne][TimerOne] for getting Timer Interupts for the seconds
-* [Adafruit Neo Pixel] [AdaNeoPix] for driving the LED strip we have in use.
+* [Adafruit Neo Pixel][AdaNeoPix] for driving the LED strip we have in use.
 
-[AdaNeoPix]: {https://github.com/adafruit/Adafruit_NeoPixel}
-[TimerOne]: {https://www.pjrc.com/teensy/td_libs_TimerOne.html}
+[AdaNeoPix]: https://github.com/adafruit/Adafruit_NeoPixel
+[TimerOne]: https://www.pjrc.com/teensy/td_libs_TimerOne.html
