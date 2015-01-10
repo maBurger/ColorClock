@@ -12,5 +12,8 @@ In the project we are building up a real clock with one NEO RGB LED for each Min
 Following requirements are needed
 
 ***Libraries***
-* [TimerOne]{https://www.pjrc.com/teensy/td_libs_TimerOne.html} for getting Timer Interupts for the seconds
-* [Adafruit Neo Pixel]{https://github.com/adafruit/Adafruit_NeoPixel} for driving the LED strip we have in use.
+* [TimerOne][TimerOne] for getting Timer Interupts for the seconds
+* [Adafruit Neo Pixel] [AdaNeoPix] for driving the LED strip we have in use.
+
+[AdaNeoPix]: {https://github.com/adafruit/Adafruit_NeoPixel}
+[TimerOne]: {https://www.pjrc.com/teensy/td_libs_TimerOne.html}
