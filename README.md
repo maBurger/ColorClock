@@ -4,7 +4,7 @@ This is a project for the VHS Esslingen - Technikschule.
 In the project we are building up a real clock with one NEO RGB LED for each Minute or Second.
 
 Here a picture of a early version
-![Early Version](ColorClockV0.2.jpg)
+![Early Version](https://github.com/maBurger/ColorClock/blob/master/media/ColorClockV0.2.jpg)
 
 
 ## Hardware
