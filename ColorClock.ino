@@ -2,9 +2,12 @@
 #include <Adafruit_NeoPixel.h>
 
 #define PIN 6
+#define LICHTSENSOR A3
 
-uint8_t Sekunden = 10, Minuten = 2, Stunden = 1;
+uint8_t Sekunden = 50, Minuten = 2, Stunden = 1;
 uint8_t striche[12] = {0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55};
+uint8_t isrCounter = 0; 
+uint8_t minBrightness = 30;
 
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
@@ -23,7 +26,8 @@ uint32_t Sek_Color, Min_Color, Std_Color, stricheColor;
 // on a live circuit...if you must, connect GND first.
 
 void setup() {
-  strip.setBrightness(25);
+  pinMode(LICHTSENSOR, INPUT);
+  
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
   Sek_Color = strip.Color(0, 255, 0); // Green
@@ -33,8 +37,11 @@ void setup() {
   
   updateTime();
   
-  Timer1.initialize(1000000); // set a timer of length 100000 microseconds (or 0.1 sec - or 10Hz => the led will blink 5 times, 5 cycles of on-and-off, per second)
+  Timer1.initialize(250000); // set a timer 250 milli seconds 
   Timer1.attachInterrupt( timerIsr ); // attach the service routine here
+  
+  //debugging
+  //Serial.begin(9600);
 }
 
 void loop(){
@@ -44,7 +51,7 @@ void updateTime() {
   uint32_t help_Color;
   
   clearStrip();
-  setStriche();
+  setHours();
   
   strip.setPixelColor(Sekunden, Sek_Color);
   
@@ -60,9 +67,39 @@ void updateTime() {
   strip.show();
 }
 
-void setStriche(){
+void updateBrightness() {
+  uint16_t lightRead;
+  
+  lightRead = analogRead(LICHTSENSOR);
+  //Serial.print(lightRead);
+  //Serial.print("  ");
+  lightRead = map(lightRead, 0, 1023, 255, minBrightness);
+  //Serial.print(lightRead);
+  //Serial.print("  ");
+  strip.setBrightness(constrain(lightRead, minBrightness, 255));
+  //Serial.println(constrain(lightRead, minBrightness, 255));
+}
+
+void setHours(){
   for( int i = 0; i < 12; i++){
     strip.setPixelColor(striche[i], stricheColor);
+  }
+}
+
+void minRun1(){
+  for(uint8_t i = 0; i < strip.numPixels(); i++ ){
+    strip.setPixelColor(i, Sek_Color);
+    strip.show();
+    delay(5);
+  }
+}
+
+void minRun2(){
+  for(uint8_t i = 0; i < 30; i++ ){
+    strip.setPixelColor(i, Sek_Color);
+    strip.setPixelColor(59-i, Sek_Color);
+    strip.show();
+    delay(5);
   }
 }
 
@@ -73,15 +110,34 @@ void clearStrip(){
 }
 
 void timerIsr(){
-  Sekunden += 1;
-  if(Sekunden > 59){
-    Sekunden = 0;
-    Minuten += 1;
-    if(Minuten > 59){
-      Minuten = 0;
-      Stunden +=1;
-      if( Stunden > 23) Stunden = 0;
-    }
+  switch (isrCounter) {
+    case 0:
+      updateBrightness();
+      break;
+    case 1:
+      updateBrightness();
+      break;
+    case 2:
+      updateBrightness();
+      break;
+    case 3:
+      updateBrightness();
+      
+      //
+      Sekunden += 1;
+      if(Sekunden > 59){
+        Sekunden = 0;
+        Minuten += 1;
+        minRun1();
+        if(Minuten > 59){
+          Minuten = 0;
+          Stunden +=1;
+          if( Stunden > 23) Stunden = 0;
+        }
+      }
+      updateTime();
+      break;
   }
-  updateTime();
+  isrCounter += 1;
+  if( isrCounter == 4 ) isrCounter = 0;
 }

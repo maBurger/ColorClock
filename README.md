@@ -3,6 +3,10 @@ Colorful DIY clock with 60 Neo-LEDs.
 This is a project for the VHS Esslingen - Technikschule.
 In the project we are building up a real clock with one NEO RGB LED for each Minute or Second.
 
+Here a picture of a early version
+![Early Version](media/ColorClockV0.2.jpg)
+
+
 ## Hardware
 1. Standard arduino
 2. Neo RGB LED strip with 60 LED per Meter
