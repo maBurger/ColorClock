@@ -13,6 +13,7 @@ uint8_t setSek = 0, setMin = 0, setH = 0, setCount = 0;
 uint8_t striche[12] = { 
   0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55};
 uint8_t isrCounter = 0;
+uint8_t isrBlinkColor = 0;
 uint8_t minBrightness = 30;
 
 #define TIME_RUN_MODE 10
@@ -236,7 +237,7 @@ void updateStrip(){
       }
       for ( int j = 0; j < 4; j++){
         for( int i = 0; i < 3; i++){
-          if( j == menuItem) strip.setPixelColor(menuArray[j][i], menuColor);
+          if( j == menuItem) strip.setPixelColor(menuArray[j][i], menuColor * isrBlinkColor);
           else strip.setPixelColor(menuArray[j][i], menuNotSelColor);
         }
       }
@@ -250,13 +251,13 @@ void updateStrip(){
       }
       switch(menuSetStatus){
         case MENU_SET_H:
-          strip.setPixelColor(setCount * 5, Std_Color);
+          strip.setPixelColor(setCount * 5, Std_Color * isrBlinkColor);
           break;
         case MENU_SET_MIN:
-          strip.setPixelColor(setCount, Min_Color);
+          strip.setPixelColor(setCount, Min_Color * isrBlinkColor);
           break;
         case MENU_SET_SEC:
-          strip.setPixelColor(setCount, Sek_Color);
+          strip.setPixelColor(setCount, Sek_Color * isrBlinkColor);
           break; 
       }
       strip.show();
@@ -355,19 +356,28 @@ void clearStrip(){
   }
 }
 
+void toggleBlinkColor(){
+  if (isrBlinkColor) isrBlinkColor = 0;
+  else isrBlinkColor = 1;
+}
+
 void timerIsr(){
   switch (isrCounter) {
   case 0:
     updateBrightness();
+    toggleBlinkColor();
     break;
   case 1:
     updateBrightness();
+    toggleBlinkColor();
     break;
   case 2:
     updateBrightness();
+    toggleBlinkColor();
     break;
   case 3:
     updateBrightness();
+    toggleBlinkColor();
 
     //
     Sekunden += 1;
