@@ -9,17 +9,27 @@
 #define BUTTONPIN 4
 
 uint8_t Sekunden = 50, Minuten = 2, Stunden = 1;
+uint8_t setSek = 0, setMin = 0, setH = 0, setCount = 0;
 uint8_t striche[12] = { 
   0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55};
-uint8_t isrCounter = 0; 
+uint8_t isrCounter = 0;
 uint8_t minBrightness = 30;
 
 #define TIME_RUN_MODE 10
 #define TIME_UPDATE_MODE 11
 #define TIME_RTC_READ 12
+
 #define MENU_MODE 20
+#define MENU_SET_MODE 24
+#define MENU_SET_H   0
+#define MENU_SET_MIN 1
+#define MENU_SET_SEC 2
+#define MENU_SET_RTC 3
+
 #define RAINBOW_MODE 30
+
 uint8_t displayStatus = TIME_UPDATE_MODE;
+uint8_t menuSetStatus = MENU_SET_H;
 
 uint8_t menuItem = 0;
 uint8_t menuArray[4][3] = {
@@ -29,6 +39,7 @@ uint8_t menuArray[4][3] = {
   {44, 45, 46}
 };
 
+
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
 // Parameter 3 = pixel type flags, add together as needed:
@@ -37,7 +48,7 @@ uint8_t menuArray[4][3] = {
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
-uint32_t Sek_Color, Min_Color, Std_Color, stricheColor, menuColor;
+uint32_t Sek_Color, Min_Color, Std_Color, stricheColor, menuColor, menuNotSelColor;
 
 // Click Button Initalize
 ClickButton button1(BUTTONPIN, LOW, CLICKBTN_PULLUP);
@@ -70,11 +81,12 @@ void setup() {
 
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
-  Sek_Color = strip.Color(0, 255, 0); // Green
-  Min_Color = strip.Color(0, 0, 255); // Blue
-  Std_Color = strip.Color(255, 0, 0); // Red
-  stricheColor = strip.Color(20, 20, 20);
-  menuColor = strip.Color(0, 255, 0);
+  Sek_Color       = strip.Color(0, 255, 0); // Green
+  Min_Color       = strip.Color(0, 0, 255); // Blue
+  Std_Color       = strip.Color(255, 0, 0); // Red
+  stricheColor    = strip.Color(20, 20, 20);
+  menuColor       = strip.Color(0, 255, 0);
+  menuNotSelColor = strip.Color(0, 0, 88);
 
   updateTime();
 
@@ -101,9 +113,83 @@ void loop(){
         if( button1.clicks == -3 ) displayStatus = MENU_MODE;
         break;
       case MENU_MODE:
-        if( button1.clicks == 1 ) menuItem++;
-        if( button1.clicks == -1 ) displayStatus = TIME_UPDATE_MODE;
-        //if( button1.clicks == -3 ) displayStatus = MENU_MODE;
+        // one short click --> goto next menu item
+        if( button1.clicks == 1 ){
+          menuItem++;
+          if( menuItem > 3) menuItem = 0;
+        }
+        
+        // on long click --> enter the menu item
+        if( button1.clicks == -1 ) {
+          switch(menuItem){
+            case 0:
+              displayStatus = TIME_UPDATE_MODE;
+              break;
+            case 1:
+              displayStatus = TIME_UPDATE_MODE;
+              break;
+            case 2:
+              displayStatus = TIME_UPDATE_MODE;
+              break;
+            case 3:
+              displayStatus = MENU_SET_MODE;
+              setH = 0;
+              setMin = 0;
+              setSek = 0;
+              break;
+          }
+        }
+        
+        // 3 clicks long --> leave the menu mode
+        if( button1.clicks == -3 ){
+          displayStatus = TIME_UPDATE_MODE;
+          menuItem = 0;
+        }
+        break;
+        
+        case MENU_SET_MODE:
+          // one click move on one step (hour, minutes seconds
+          if( button1.clicks > 0 ){
+            setCount += button1.clicks;
+            if(menuSetStatus == MENU_SET_H){
+              if(setCount > 11) setCount = 0;
+            } else {
+              if(setCount > 59) setCount = 0;
+            }
+          }
+          
+          // goto next setting
+          if( button1.clicks == - 1 ){
+            switch(menuSetStatus){
+              case MENU_SET_H:
+                menuSetStatus = MENU_SET_MIN;
+                setH = setCount;
+                setCount = 0;
+                break;
+              case MENU_SET_MIN:
+                menuSetStatus = MENU_SET_SEC;
+                setMin = setCount;
+                setCount = 0;
+                break;
+              case MENU_SET_SEC:
+                setSek = setCount;
+                Serial.print("New Time: ");
+                Serial.print(setH, DEC);
+                Serial.print(':');
+                Serial.print(setMin, DEC);
+                Serial.print(':');
+                Serial.print(setSek, DEC);
+                Serial.println();
+                Stunden = setH;
+                Minuten = setMin;
+                Sekunden = setSek;
+                DateTime newTime = DateTime(0,0,0, setH, setMin, setSek);
+                RTC.adjust(newTime);
+                displayStatus = TIME_UPDATE_MODE;
+                break;
+            }
+          }
+          break;
     }
   }
   updateStrip();
@@ -124,12 +210,6 @@ void updateStrip(){
       Stunden = now.hour();
       Minuten = now.minute();
       Sekunden = now.second();
-      Serial.print(now.hour(), DEC);
-      Serial.print(':');
-      Serial.print(now.minute(), DEC);
-      Serial.print(':');
-      Serial.print(now.second(), DEC);
-      Serial.println();
       displayStatus = TIME_RUN_MODE;
       break;
     case RAINBOW_MODE:
@@ -143,8 +223,30 @@ void updateStrip(){
       for( int i = 0; i < 60; i++){
         strip.setPixelColor(i, stricheColor);
       }
-      for( int i = 0; i < 3; i++){
-        strip.setPixelColor(menuArray[menuItem%4][i], menuColor);
+      for ( int j = 0; j < 4; j++){
+        for( int i = 0; i < 3; i++){
+          if( j == menuItem) strip.setPixelColor(menuArray[j][i], menuColor);
+          else strip.setPixelColor(menuArray[j][i], menuNotSelColor);
+        }
+      }
+      strip.show();
+      break;
+      
+    case MENU_SET_MODE:
+      clearStrip();
+      for( int i = 0; i < 60; i++){
+        strip.setPixelColor(i, stricheColor);
+      }
+      switch(menuSetStatus){
+        case MENU_SET_H:
+          strip.setPixelColor(setCount * 5, Std_Color);
+          break;
+        case MENU_SET_MIN:
+          strip.setPixelColor(setCount, Min_Color);
+          break;
+        case MENU_SET_SEC:
+          strip.setPixelColor(setCount, Sek_Color);
+          break; 
       }
       strip.show();
       break;
