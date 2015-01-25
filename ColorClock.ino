@@ -1,3 +1,5 @@
+#include <Wire.h>
+#include <RTClib.h>
 #include <ClickButton.h>
 #include <TimerOne.h>
 #include <Adafruit_NeoPixel.h>
@@ -14,6 +16,7 @@ uint8_t minBrightness = 30;
 
 #define TIME_RUN_MODE 10
 #define TIME_UPDATE_MODE 11
+#define TIME_RTC_READ 12
 #define MENU_MODE 20
 #define RAINBOW_MODE 30
 uint8_t displayStatus = TIME_UPDATE_MODE;
@@ -34,11 +37,12 @@ uint8_t menuArray[4][3] = {
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
+uint32_t Sek_Color, Min_Color, Std_Color, stricheColor, menuColor;
 
 // Click Button Initalize
 ClickButton button1(BUTTONPIN, LOW, CLICKBTN_PULLUP);
 
-uint32_t Sek_Color, Min_Color, Std_Color, stricheColor, menuColor;
+RTC_DS1307 RTC;
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -47,6 +51,22 @@ uint32_t Sek_Color, Min_Color, Std_Color, stricheColor, menuColor;
 
 void setup() {
   pinMode(LICHTSENSOR, INPUT);
+  //debugging
+  Serial.begin(9600);
+  Wire.begin();
+  RTC.begin();
+
+  DateTime now = RTC.now();
+  Stunden = now.hour();
+  Minuten = now.minute();
+  Sekunden = now.second();
+  Serial.print(now.hour(), DEC);
+  Serial.print(':');
+  Serial.print(now.minute(), DEC);
+  Serial.print(':');
+  Serial.print(now.second(), DEC);
+  Serial.println();
+  
 
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
@@ -66,13 +86,9 @@ void setup() {
   button1.debounceTime   = 20;   // Debounce timer in ms
   button1.multiclickTime = 250;  // Time limit for multi clicks
   button1.longClickTime  = 1000; // time until "held-down clicks" register
-
-  //debugging
-  Serial.begin(9600);
 }
 
 void loop(){
-  uint8_t i = 0;
   button1.Update();
 
   if( button1.clicks != 0 ){
@@ -81,6 +97,7 @@ void loop(){
       case TIME_RUN_MODE:
         // if( button1.clicks == 1 ) displayStatus = TIME_MODE;
         if( button1.clicks == 2 ) displayStatus = RAINBOW_MODE;
+        if( button1.clicks == 3 ) displayStatus = TIME_RTC_READ;
         if( button1.clicks == -3 ) displayStatus = MENU_MODE;
         break;
       case MENU_MODE:
@@ -93,11 +110,26 @@ void loop(){
 }
 
 void updateStrip(){
+  DateTime now;
+  
   switch( displayStatus ){
     case TIME_RUN_MODE:
       break;
     case TIME_UPDATE_MODE:
       updateTime();
+      displayStatus = TIME_RUN_MODE;
+      break;
+    case TIME_RTC_READ:
+      now = RTC.now();
+      Stunden = now.hour();
+      Minuten = now.minute();
+      Sekunden = now.second();
+      Serial.print(now.hour(), DEC);
+      Serial.print(':');
+      Serial.print(now.minute(), DEC);
+      Serial.print(':');
+      Serial.print(now.second(), DEC);
+      Serial.println();
       displayStatus = TIME_RUN_MODE;
       break;
     case RAINBOW_MODE:

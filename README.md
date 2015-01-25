@@ -12,6 +12,7 @@ Here a picture of an early version
 2. Neo RGB NEO LED strip with 60 LED per Meter
 3. Foto resistor and resistor
 4. Button
+5. Real Time Clock tiny RTC
 5. 40cm x 40cm MDF boards
 
 ## Software
@@ -21,7 +22,9 @@ Following requirements are needed
 * [TimerOne][TimerOne] for getting Timer Interupts for the seconds
 * [Adafruit Neo Pixel][AdaNeoPix] for driving the LED strip we have in use.
 * [ClickButton][ClickButton] for doing the Button debounce and double- and long click
+* [Real Time Clock][RTC] for interfacing with the tiny RTC via I2C communication 
 
 [AdaNeoPix]: https://github.com/adafruit/Adafruit_NeoPixel
 [TimerOne]: https://www.pjrc.com/teensy/td_libs_TimerOne.html
 [ClickButton]: https://code.google.com/p/clickbutton/
+[RTC]: https://github.com/jcw/rtclib
