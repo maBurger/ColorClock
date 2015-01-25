@@ -189,6 +189,17 @@ void loop(){
                 break;
             }
           }
+          
+          // Exit the Time Set Mode with 3 click long
+          if( button1.clicks == - 3 ){
+            setCount = 0;
+            setH = 0;
+            setMin = 0;
+            setSek = 0;
+            menuItem = 0;
+            menuSetStatus = MENU_SET_H;
+            displayStatus = TIME_RUN_MODE;
+          }
           break;
     }
   }
