@@ -28,9 +28,12 @@ uint8_t minBrightness = 30;
 #define MENU_SET_RTC 3
 
 #define RAINBOW_MODE 30
+#define THEATER_MODE 40
+#define STEPPER_MODE 50
 
 uint8_t displayStatus = TIME_UPDATE_MODE;
 uint8_t menuSetStatus = MENU_SET_H;
+uint8_t minRunMode = 0;
 
 uint8_t menuItem = 0;
 uint8_t menuArray[4][3] = {
@@ -49,7 +52,7 @@ uint8_t menuArray[4][3] = {
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
-uint32_t Sek_Color, Min_Color, Std_Color, stricheColor, menuColor, menuNotSelColor;
+uint32_t Sek_Color, Min_Color, Std_Color, Clear_Color, stricheColor, menuColor, menuNotSelColor;
 
 // Click Button Initalize
 ClickButton button1(BUTTONPIN, LOW, CLICKBTN_PULLUP);
@@ -68,16 +71,13 @@ void setup() {
   Wire.begin();
   RTC.begin();
 
-  DateTime now = RTC.now();
-  Stunden = now.hour();
-  Minuten = now.minute();
-  Sekunden = now.second();
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
-  Serial.println();
+  ReadRTC();
+//  Serial.print(now.hour(), DEC);
+//  Serial.print(':');
+//  Serial.print(now.minute(), DEC);
+//  Serial.print(':');
+//  Serial.print(now.second(), DEC);
+//  Serial.println();
   
 
   strip.begin();
@@ -85,6 +85,7 @@ void setup() {
   Sek_Color       = strip.Color(0, 255, 0); // Green
   Min_Color       = strip.Color(0, 0, 255); // Blue
   Std_Color       = strip.Color(255, 0, 0); // Red
+  Clear_Color     = strip.Color(0, 0, 0);
   stricheColor    = strip.Color(20, 20, 20);
   menuColor       = strip.Color(0, 255, 0);
   menuNotSelColor = strip.Color(0, 0, 88);
@@ -109,9 +110,10 @@ void loop(){
     switch( displayStatus ){
       case TIME_RUN_MODE:
         // if( button1.clicks == 1 ) displayStatus = TIME_MODE;
-        if( button1.clicks == 2 ) displayStatus = RAINBOW_MODE;
-        if( button1.clicks == 3 ) displayStatus = TIME_RTC_READ;
-        if( button1.clicks == -3 ) displayStatus = MENU_MODE;
+        if( button1.clicks == 1 ) displayStatus = RAINBOW_MODE;
+        if( button1.clicks == 2 ) displayStatus = THEATER_MODE;
+        if( button1.clicks == 3 ) displayStatus = STEPPER_MODE;
+        if( button1.clicks == -4 ) displayStatus = MENU_MODE;
         break;
       case MENU_MODE:
         // one short click --> goto next menu item
@@ -124,6 +126,10 @@ void loop(){
         if( button1.clicks == -1 ) {
           switch(menuItem){
             case 0:
+              // minRunMode is used in the Timer Interrupt
+              // performs a short animation
+              minRunMode += 1;
+              if (minRunMode > 2) minRunMode = 0;
               displayStatus = TIME_UPDATE_MODE;
               break;
             case 1:
@@ -141,8 +147,8 @@ void loop(){
           }
         }
         
-        // 3 clicks long --> leave the menu mode
-        if( button1.clicks == -3 ){
+        // 4 clicks long --> leave the menu mode
+        if( button1.clicks == -4 ){
           displayStatus = TIME_UPDATE_MODE;
           menuItem = 0;
         }
@@ -191,8 +197,8 @@ void loop(){
             }
           }
           
-          // Exit the Time Set Mode with 3 click long
-          if( button1.clicks == - 3 ){
+          // Exit the Time Set Mode with 4 click long
+          if( button1.clicks == - 4 ){
             setCount = 0;
             setH = 0;
             setMin = 0;
@@ -207,9 +213,15 @@ void loop(){
   updateStrip();
 }
 
+void ReadRTC(){
+  DateTime now = RTC.now();
+  Stunden = now.hour();
+  Minuten = now.minute();
+  Sekunden = now.second();
+}
+
 void updateStrip(){
-  DateTime now;
-  
+ 
   switch( displayStatus ){
     case TIME_RUN_MODE:
       break;
@@ -218,16 +230,23 @@ void updateStrip(){
       displayStatus = TIME_RUN_MODE;
       break;
     case TIME_RTC_READ:
-      now = RTC.now();
-      Stunden = now.hour();
-      Minuten = now.minute();
-      Sekunden = now.second();
+      ReadRTC();
       displayStatus = TIME_RUN_MODE;
       break;
     case RAINBOW_MODE:
       for( int i = 0; i < 2; i++){
         rainbow(10);
       }
+      displayStatus = TIME_UPDATE_MODE;
+      break;
+    case THEATER_MODE:
+      theaterChaseRainbow(100);
+    
+      displayStatus = TIME_UPDATE_MODE;
+      break;
+    case STEPPER_MODE:
+      stepper(20);
+    
       displayStatus = TIME_UPDATE_MODE;
       break;
     case MENU_MODE:
@@ -315,10 +334,35 @@ void minRun1(){
 
 void minRun2(){
   for(uint8_t i = 0; i < 30; i++ ){
-    strip.setPixelColor(i, Sek_Color);
-    strip.setPixelColor(59-i, Sek_Color);
+    strip.setPixelColor(i, Std_Color);
+    strip.setPixelColor(59-i, Std_Color);
     strip.show();
     delay(5);
+  }
+}
+
+void minRun3(){
+  for(uint8_t i = 0; i < strip.numPixels(); i++ ){
+    strip.setPixelColor(i, Wheel(map(i, 0, strip.numPixels(), 0, 255)));
+    strip.show();
+    delay(5);
+  }
+}
+
+void theaterChaseRainbow(uint8_t wait) {
+  for (int j=0; j < 256; j=j+8) {     // cycle all 256 colors in the wheel
+    for (int q=0; q < 3; q++) {
+        for (int i=0; i < strip.numPixels(); i=i+3) {
+          strip.setPixelColor(i+q, Wheel( (i+j) % 255));    //turn every third pixel on
+        }
+        strip.show();
+       
+        delay(wait);
+       
+        for (int i=0; i < strip.numPixels(); i=i+3) {
+          strip.setPixelColor(i+q, 0);        //turn every third pixel off
+        }
+    }
   }
 }
 
@@ -333,6 +377,24 @@ void rainbow(uint8_t wait) {
     delay(wait);
   }
 }
+
+void stepper(uint8_t wait) {
+  uint16_t i, j;
+  
+  for( j=0; j<5; j++){
+    for( i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, Wheel(map(i, 0, strip.numPixels(), 0, 255)) );
+      strip.show();
+      delay(wait);
+    }
+    for( i=0; i<strip.numPixels(); i++) {
+      strip.setPixelColor(i, Clear_Color );
+      strip.show();
+      delay(10);
+    }
+  }
+}
+
 
 // Input a value 0 to 255 to get a color value.
 // The colours are a transition r - g - b - back to r.
@@ -384,7 +446,20 @@ void timerIsr(){
     if(Sekunden > 59){
       Sekunden = 0;
       Minuten += 1;
-      if( displayStatus == TIME_RUN_MODE ) minRun1();
+      if( displayStatus == TIME_RUN_MODE ){
+        switch( minRunMode ){
+          case 0:
+            minRun3();
+            break;
+          case 1:
+            minRun1();
+            break;
+          case 2:  
+            minRun2();
+            break;
+        }
+        ReadRTC();
+      }
       if(Minuten > 59){
         Minuten = 0;
         Stunden +=1;
