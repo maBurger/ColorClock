@@ -5,8 +5,6 @@
 #include <Adafruit_NeoPixel.h>
 
 #define PIN 6
-#define DEBUG_PIN 12
-#define CLOCK_OUT 13
 #define LICHTSENSOR A3
 #define BUTTONPIN 4
 
@@ -68,16 +66,19 @@ RTC_DS1307 RTC;
 
 void setup() {
   pinMode(LICHTSENSOR, INPUT);
-  pinMode(DEBUG_PIN, OUTPUT);
-  pinMode(CLOCK_OUT, OUTPUT);
   //debugging
   Serial.begin(9600);
   Wire.begin();
   RTC.begin();
 
-  //DateTime newTime = DateTime(0,0,0, 12, 25, 45);
-  //RTC.adjust(newTime);
   ReadRTC();
+//  Serial.print(now.hour(), DEC);
+//  Serial.print(':');
+//  Serial.print(now.minute(), DEC);
+//  Serial.print(':');
+//  Serial.print(now.second(), DEC);
+//  Serial.println();
+  
 
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
@@ -91,7 +92,7 @@ void setup() {
 
   updateTime();
 
-  Timer1.initialize(249500); // set a timer 250 milli seconds Timer will fire 4 times in a second
+  Timer1.initialize(250000); // set a timer 250 milli seconds Timer will fire 4 times in a second
   Timer1.attachInterrupt( timerIsr ); // attach the service routine here
 
   // Setup button timers (all in milliseconds / ms)
@@ -112,7 +113,6 @@ void loop(){
         if( button1.clicks == 1 ) displayStatus = RAINBOW_MODE;
         if( button1.clicks == 2 ) displayStatus = THEATER_MODE;
         if( button1.clicks == 3 ) displayStatus = STEPPER_MODE;
-        if( button1.clicks == -1 ) displayStatus = TIME_RTC_READ;
         if( button1.clicks == -4 ) displayStatus = MENU_MODE;
         break;
       case MENU_MODE:
@@ -218,13 +218,6 @@ void ReadRTC(){
   Stunden = now.hour();
   Minuten = now.minute();
   Sekunden = now.second();
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
-  Serial.println();
-
 }
 
 void updateStrip(){
@@ -335,7 +328,7 @@ void minRun1(){
   for(uint8_t i = 0; i < strip.numPixels(); i++ ){
     strip.setPixelColor(i, Sek_Color);
     strip.show();
-    delay(2);
+    delay(5);
   }
 }
 
@@ -344,7 +337,7 @@ void minRun2(){
     strip.setPixelColor(i, Std_Color);
     strip.setPixelColor(59-i, Std_Color);
     strip.show();
-    delay(2);
+    delay(5);
   }
 }
 
@@ -352,7 +345,7 @@ void minRun3(){
   for(uint8_t i = 0; i < strip.numPixels(); i++ ){
     strip.setPixelColor(i, Wheel(map(i, 0, strip.numPixels(), 0, 255)));
     strip.show();
-    delay(2);
+    delay(5);
   }
 }
 
@@ -431,9 +424,6 @@ void toggleBlinkColor(){
 }
 
 void timerIsr(){
-  //Toggle the Clock Output Pin
-  digitalWrite(CLOCK_OUT, !digitalRead(CLOCK_OUT));
-  
   switch (isrCounter) {
   case 0:
     updateBrightness();
@@ -454,7 +444,6 @@ void timerIsr(){
     //
     Sekunden += 1;
     if(Sekunden > 59){
-      digitalWrite(DEBUG_PIN, HIGH);
       Sekunden = 0;
       Minuten += 1;
       if( displayStatus == TIME_RUN_MODE ){
@@ -476,14 +465,12 @@ void timerIsr(){
         Stunden +=1;
         if( Stunden > 23) Stunden = 0;
       }
-      digitalWrite(DEBUG_PIN, LOW);
     }
     // only when the clock is in TIME_RUN_MODE the update must be done
     // especially important when in MENU_MODE
     if(displayStatus == TIME_RUN_MODE) displayStatus = TIME_UPDATE_MODE;
     break;
   }
-    
   isrCounter += 1;
   if( isrCounter == 4 ) isrCounter = 0;
 }
