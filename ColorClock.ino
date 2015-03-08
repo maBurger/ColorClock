@@ -35,6 +35,7 @@ uint8_t minBrightness = 30;
 uint8_t displayStatus = TIME_UPDATE_MODE;
 uint8_t menuSetStatus = MENU_SET_H;
 uint8_t minRunMode = 0;
+uint8_t isrLEDMode = 0;
 
 uint8_t menuItem = 0;
 uint8_t menuArray[4][3] = {
@@ -131,9 +132,13 @@ void loop(){
               displayStatus = TIME_UPDATE_MODE;
               break;
             case 1:
+              isrLEDMode = !isrLEDMode;
+              digitalWrite(CLOCK_OUT, LOW);
+              menuItem = 0;
               displayStatus = TIME_UPDATE_MODE;
               break;
             case 2:
+              menuItem = 0;
               displayStatus = TIME_UPDATE_MODE;
               break;
             case 3:
@@ -141,6 +146,7 @@ void loop(){
               setH = 0;
               setMin = 0;
               setSek = 0;
+              menuItem = 0;
               break;
           }
         }
@@ -430,7 +436,7 @@ void toggleBlinkColor(){
 
 void timerIsr(){
   //Toggle the Clock Output Pin
-  digitalWrite(CLOCK_OUT, !digitalRead(CLOCK_OUT));
+  if(isrLEDMode) digitalWrite(CLOCK_OUT, !digitalRead(CLOCK_OUT));
   
   switch (isrCounter) {
   case 0:
