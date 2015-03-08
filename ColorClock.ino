@@ -5,6 +5,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #define PIN 6
+#define CLOCK_OUT 13
 #define LICHTSENSOR A3
 #define BUTTONPIN 4
 
@@ -57,7 +58,7 @@ uint32_t Sek_Color, Min_Color, Std_Color, Clear_Color, stricheColor, menuColor, 
 // Click Button Initalize
 ClickButton button1(BUTTONPIN, LOW, CLICKBTN_PULLUP);
 
-RTC_DS1307 RTC;
+//RTC_DS1307 RTC;
 
 // IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
@@ -66,12 +67,13 @@ RTC_DS1307 RTC;
 
 void setup() {
   pinMode(LICHTSENSOR, INPUT);
+  pinMode(CLOCK_OUT, OUTPUT);
   //debugging
   Serial.begin(9600);
-  Wire.begin();
-  RTC.begin();
+  //Wire.begin();
+  //RTC.begin();
 
-  ReadRTC();
+  //ReadRTC();
 //  Serial.print(now.hour(), DEC);
 //  Serial.print(':');
 //  Serial.print(now.minute(), DEC);
@@ -92,7 +94,7 @@ void setup() {
 
   updateTime();
 
-  Timer1.initialize(250000); // set a timer 250 milli seconds Timer will fire 4 times in a second
+  Timer1.initialize(249500); // set a timer 250 milli seconds Timer will fire 4 times in a second
   Timer1.attachInterrupt( timerIsr ); // attach the service routine here
 
   // Setup button timers (all in milliseconds / ms)
@@ -191,7 +193,7 @@ void loop(){
                 Minuten = setMin;
                 Sekunden = setSek;
                 DateTime newTime = DateTime(0,0,0, setH, setMin, setSek);
-                RTC.adjust(newTime);
+                //RTC.adjust(newTime);
                 displayStatus = TIME_UPDATE_MODE;
                 break;
             }
@@ -213,11 +215,12 @@ void loop(){
   updateStrip();
 }
 
-void ReadRTC(){
+void ReadRTC(){/*
   DateTime now = RTC.now();
   Stunden = now.hour();
   Minuten = now.minute();
   Sekunden = now.second();
+  */
 }
 
 void updateStrip(){
@@ -230,7 +233,7 @@ void updateStrip(){
       displayStatus = TIME_RUN_MODE;
       break;
     case TIME_RTC_READ:
-      ReadRTC();
+      //ReadRTC();
       displayStatus = TIME_RUN_MODE;
       break;
     case RAINBOW_MODE:
@@ -458,7 +461,7 @@ void timerIsr(){
             minRun2();
             break;
         }
-        ReadRTC();
+        //ReadRTC();
       }
       if(Minuten > 59){
         Minuten = 0;
@@ -471,6 +474,10 @@ void timerIsr(){
     if(displayStatus == TIME_RUN_MODE) displayStatus = TIME_UPDATE_MODE;
     break;
   }
+  
+  //Toggle the Clock Output Pin
+  digitalWrite(CLOCK_OUT, !digitalRead(CLOCK_OUT));
+  
   isrCounter += 1;
   if( isrCounter == 4 ) isrCounter = 0;
 }
